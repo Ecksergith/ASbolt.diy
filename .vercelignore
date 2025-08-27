@@ -30,9 +30,6 @@ docs/
 # Scripts
 scripts/
 
-# Backup files
-functions.backup/
-
 # Git
 .git/
 .gitignore

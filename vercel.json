@@ -1,20 +1,10 @@
 {
-<<<<<<< HEAD
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "build/client"
-=======
-  "buildCommand": "node vercel-build.js",
-  "outputDirectory": "build/client",
-  "installCommand": "pnpm install",
-  "framework": "remix",
   "functions": {
-    "functions/[[path]].ts": {
-      "runtime": "nodejs18.x"
+    "app/**/*.ts": {
+      "runtime": "@vercel/node@18.x"
+    },
+    "app/**/*.tsx": {
+      "runtime": "@vercel/node@18.x"
     }
-  },
-  "env": {
-    "NODE_ENV": "production",
-    "DISABLE_WORKERD": "true"
   }
->>>>>>> ba16bc53e1cdf77e1b399db397f28cd3a2e17376
 }
