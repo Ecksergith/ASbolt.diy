@@ -342,6 +342,102 @@ Remember to always commit your local changes or stash them before pulling update
 - **`pnpm run typegen`**: Generates TypeScript types using Wrangler.
 - **`pnpm run deploy`**: Deploys the project to Cloudflare Pages.
 - **`pnpm run lint:fix`**: Automatically fixes linting issues.
+- **`node vercel-build.js`**: Custom build script for Vercel deployment (handles environment variables and workerd disabling).
+
+---
+
+## Correções de Deploy (Vercel/Cloudflare)
+
+### Problemas Identificados
+
+Durante o processo de deploy, foram identificados os seguintes erros críticos:
+
+1. **Incompatibilidade de Versão GLIBC**: O binário `workerd` requer GLIBC 2.35, mas o ambiente de build da Vercel possui uma versão mais antiga
+2. **Erro EPIPE durante o Build**: O proxy de desenvolvimento do Cloudflare tentava comunicar-se com o binário workerd durante builds de produção
+3. **Configuração Incorreta**: O processo de build não estava configurado adequadamente para deploy na Vercel
+
+### Soluções Implementadas
+
+#### 1. Configuração do Vite (`vite.config.ts`)
+- **Alteração Principal**: Modificado para carregar o `remixCloudflareDevProxy()` apenas em modo de desenvolvimento
+- **Impacto**: Previne o carregamento do binário workerd durante builds de produção
+
+```typescript
+// Antes:
+config.mode !== 'test' && remixCloudflareDevProxy(),
+
+// Depois:
+config.mode === 'development' && remixCloudflareDevProxy(),
+```
+
+#### 2. Configuração do Wrangler (`wrangler.toml`)
+- Atualizada a data de compatibilidade para uma versão mais estável (`2024-11-12`)
+- Adicionada configuração de build para melhor compatibilidade
+
+```toml
+compatibility_date = "2024-11-12"
+[build]
+command = "pnpm run build"
+[build.upload]
+format = "directory"
+```
+
+#### 3. Processo de Build Aprimorado
+- Modificado o script de build no `package.json` para incluir variáveis de ambiente
+- Adicionado `DISABLE_WORKERD=true` para prevenir workerd de carregar em produção
+
+```json
+"build": "cross-env NODE_ENV=production DISABLE_WORKERD=true remix vite:build"
+```
+
+#### 4. Configuração da Vercel (`vercel.json`)
+- Criada configuração adequada para aplicações Remix
+- Especificado runtime Node.js 18.x para funções
+- Configuradas variáveis de ambiente apropriadas
+
+#### 5. Script de Build Customizado (`vercel-build.js`)
+- Adicionado script de build robusto que gerencia variáveis de ambiente adequadamente
+- Fornece melhor tratamento de erros e logging
+
+#### 6. Handler de Funções Aprimorado (`functions/[[path]].ts`)
+- Adicionado tratamento de erros adequado para o handler de funções
+- Garante fallback gracioso em caso de erros
+
+#### 7. Variáveis de Ambiente de Produção (`.env.production`)
+- Criada configuração de ambiente de produção
+- Desabilitado explicitamente workerd em produção
+
+```env
+NODE_ENV=production
+DISABLE_WORKERD=true
+```
+
+### Resultado Esperado
+
+Estas mudanças devem resolver os problemas de deploy ao:
+
+- Prevenir o erro de incompatibilidade GLIBC não carregando workerd em produção
+- Garantir que o processo de build funcione corretamente no ambiente da Vercel
+- Fornecer tratamento de erros e mecanismos de fallback adequados
+- Configurar a Vercel para lidar adequadamente com aplicações Remix
+
+### Comandos de Deploy
+
+Para deploy na Vercel:
+```bash
+# Build local para teste
+pnpm run build
+
+# Deploy para Cloudflare Pages
+pnpm run deploy
+```
+
+### Notas Importantes
+
+- As alterações são compatíveis com o fluxo de desenvolvimento local existente
+- O modo de desenvolvimento continua funcionando normalmente com `pnpm run dev`
+- As mudanças não afetam a funcionalidade da aplicação, apenas o processo de build e deploy
+- A configuração é otimizada para ambiente de produção na Vercel
 
 ---
 
